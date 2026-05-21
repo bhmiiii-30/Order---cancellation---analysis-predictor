@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<!-- Hyderabad Orders Analytics Dashboard -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hyderabad Orders Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --accent: #4f8ef7;
+    --accent2: #34d399;
+    --danger: #f87171;
+    --warn: #fbbf24;
+    --purple: #a78bfa;
+    --coral: #fb7185;
+    --teal: #2dd4bf;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+  .header-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(79,142,247,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(79,142,247,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-left: 8px;
+  }
+
+  /* Layout */
+  main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2.5rem 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* KPI Grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kpi {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi.blue::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi.green::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi.red::before { background: linear-gradient(90deg, var(--danger), transparent); }
+  .kpi.yellow::before { background: linear-gradient(90deg, var(--warn), transparent); }
+  .kpi.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+  .kpi.teal::before { background: linear-gradient(90deg, var(--teal), transparent); }
+  .kpi:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+  .kpi-val { font-size: 26px; font-weight: 600; color: var(--text); }
+  .kpi-val.blue { color: var(--accent); }
+  .kpi-val.green { color: var(--accent2); }
+  .kpi-val.red { color: var(--danger); }
+  .kpi-val.yellow { color: var(--warn); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Chart Cards */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: border-color 0.2s;
+  }
+  .chart-card:hover { border-color: var(--border2); }
+  .chart-card.full { grid-column: 1 / -1; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .card-sub { font-size: 11px; color: var(--muted); margin-bottom: 1.25rem; }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Reason bars */
+  .reason-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .reason-label { font-size: 12px; color: var(--muted); width: 210px; flex-shrink: 0; }
+  .reason-track { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .reason-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+  .reason-count { font-size: 12px; font-weight: 600; color: var(--text); width: 18px; text-align: right; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(255,255,255,0.025); }
+  tbody td { padding: 9px 12px; color: var(--text); white-space: nowrap; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pill.delivered { background: rgba(52,211,153,0.15); color: var(--accent2); }
+  .pill.cancelled { background: rgba(248,113,113,0.15); color: var(--danger); }
+  .pill.transit { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .pill.returned { background: rgba(251,191,36,0.15); color: var(--warn); }
+
+  /* Insights box */
+  .insights {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-top: 1rem;
+  }
+  .insights h4 { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .insights ul { list-style: none; }
+  .insights ul li { font-size: 12px; color: var(--muted); padding: 4px 0; padding-left: 14px; position: relative; }
+  .insights ul li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-size: 10px; top: 5px; }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    main { padding: 1rem; }
+    header { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Order<span>Pulse</span></div>
+  <div class="header-meta">
+    Hyderabad, Telangana
+    <span class="badge">Jan – Apr 2026</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="section-title">Overview</div>
+  <div class="kpi-grid">
+    <div class="kpi blue">
+      <div class="kpi-label">Total orders</div>
+      <div class="kpi-val blue">25</div>
+      <div class="kpi-sub">Across 15 localities</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Total order value</div>
+      <div class="kpi-val blue">₹2,16,688</div>
+      <div class="kpi-sub">Gross potential</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Actual revenue</div>
+      <div class="kpi-val green">₹1,47,567</div>
+      <div class="kpi-sub">68.1% realised</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Revenue loss</div>
+      <div class="kpi-val red">₹69,121</div>
+      <div class="kpi-sub">From cancellations</div>
+    </div>
+    <div class="kpi yellow">
+      <div class="kpi-label">Cancellation rate</div>
+      <div class="kpi-val yellow">36%</div>
+      <div class="kpi-sub">9 of 25 orders</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Delivered</div>
+      <div class="kpi-val green">11</div>
+      <div class="kpi-sub">44% success rate</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">In transit</div>
+      <div class="kpi-val blue">4</div>
+      <div class="kpi-sub">Pending delivery</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-label">Returned</div>
+      <div class="kpi-val" style="color:var(--purple)">1</div>
+      <div class="kpi-sub">Post-delivery return</div>
+    </div>
+  </div>
+
+  <div class="section-title">Order Distribution</div>
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="card-title">Order status breakdown</div>
+      <div class="card-sub">Distribution across all 25 orders</div>
+      <div class="legend">
+        <div class="leg"><span class="leg-dot" style="background:#34d399"></span>Delivered (11)</div>
+        <div class="leg"><span class="leg-dot" style="background:#f87171"></span>Cancelled (9)</div>
+        <div class="leg"><span class="leg-dot" style="background:#4f8ef7"></span>In Transit (4)</div>
+        <div class="leg"><span class="leg-dot" style="background:#fbbf24"></span>Returned (1)</div>
+      </div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="statusChart" role="img" aria-label="Doughnut chart: Delivered 11, Cancelled 9, In Transit 4, Returned 1" width="688" height="275" style="display: block; box-sizing: border-box; height: 220px; width: 550px;">Order status distribution.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">Payment method distribution</div>
+      <div class="card-sub">Preference across 25 orders</div>
+      <div class="legend">
+        <div class="leg"><span class="leg-dot" style="background:#4f8ef7"></span>UPI (14)</div>
+        <div class="leg"><span class="leg-dot" style="background:#34d399"></span>Cash on Delivery (8)</div>
+        <div class="leg"><span class="leg-dot" style="background:#fbbf24"></span>Debit Card (2)</div>
+        <div class="leg"><span class="leg-dot" style="background:#a78bfa"></span>Credit Card (1)</div>
+      </div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="paymentChart" role="img" aria-label="Doughnut chart: UPI 14, CoD 8, Debit 2, Credit 1" width="688" height="275" style="display: block; box-sizing: border-box; height: 220px; width: 550px;">Payment method distribution.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Revenue Analysis</div>
+  <div class="chart-card full">
+    <div class="card-title">Order amount vs revenue loss by product category</div>
+    <div class="card-sub">Grouped bar comparison — hover for exact values</div>
+    <div class="legend">
+      <div class="leg"><span class="leg-dot" style="background:#4f8ef7"></span>Order amount</div>
+      <div class="leg"><span class="leg-dot" style="background:#f87171"></span>Revenue loss</div>
+    </div>
+    <div style="position:relative;width:100%;height:300px;">
+      <canvas id="categoryChart" role="img" aria-label="Grouped bar chart of revenue by category" width="1458" height="375" style="display: block; box-sizing: border-box; height: 300px; width: 1166px;">Revenue by category.</canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Cancellation Analysis</div>
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="card-title">By customer segment</div>
+      <div class="card-sub">Cancellation rate %</div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="segmentChart" role="img" aria-label="Bar chart: cancellation rate by segment" width="431" height="250" style="display: block; box-sizing: border-box; height: 200px; width: 345px;">Segment cancellation rates.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">By sales channel</div>
+      <div class="card-sub">Cancellation rate %</div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="channelChart" role="img" aria-label="Bar chart: cancellation rate by channel" width="431" height="250" style="display: block; box-sizing: border-box; height: 200px; width: 345px;">Channel cancellation rates.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">By payment method</div>
+      <div class="card-sub">Cancellation rate %</div>
+      <div style="position:relative;width:100%;height:200px;">
+        <canvas id="pmtCancelChart" role="img" aria-label="Bar chart: cancellation rate by payment method" width="431" height="250" style="display: block; box-sizing: border-box; height: 200px; width: 345px;">Payment cancellation rates.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-top:16px;">
+    <div class="card-title">Cancellation reasons</div>
+    <div class="card-sub">Frequency of each reason across 9 cancelled orders</div>
+    <div id="reasonBars" style="margin-top:1rem;"></div>
+  </div><div class="reason-row">
+    <div class="reason-label">Out of stock</div>
+    <div class="reason-track"><div class="reason-fill" style="width:100%;background:#fbbf24"></div></div>
+    <div class="reason-count">2</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Price found lower elsewhere</div>
+    <div class="reason-track"><div class="reason-fill" style="width:100%;background:#fb7185"></div></div>
+    <div class="reason-count">2</div>
+  </div><div class="reason-row">
+    <div class="reason-label">High delivery ETA</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#a78bfa"></div></div>
+    <div class="reason-count">1</div>
+  </div><div class="reason-row">
+    <div class="reason-label">No response at delivery confirmation</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#6b7280"></div></div>
+    <div class="reason-count">1</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Payment issue</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#2dd4bf"></div></div>
+    <div class="reason-count">1</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Address not serviceable</div>
+    <div class="reason-track"><div class="reason-fill" style="width:100%;background:#f87171"></div></div>
+    <div class="reason-count">2</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Out of stock</div>
+    <div class="reason-track"><div class="reason-fill" style="width:100%;background:#fbbf24"></div></div>
+    <div class="reason-count">2</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Price found lower elsewhere</div>
+    <div class="reason-track"><div class="reason-fill" style="width:100%;background:#fb7185"></div></div>
+    <div class="reason-count">2</div>
+  </div><div class="reason-row">
+    <div class="reason-label">High delivery ETA</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#a78bfa"></div></div>
+    <div class="reason-count">1</div>
+  </div><div class="reason-row">
+    <div class="reason-label">No response at delivery confirmation</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#6b7280"></div></div>
+    <div class="reason-count">1</div>
+  </div><div class="reason-row">
+    <div class="reason-label">Payment issue</div>
+    <div class="reason-track"><div class="reason-fill" style="width:50%;background:#2dd4bf"></div></div>
+    <div class="reason-count">1</div>
+  </div></div>
+  </div>
+
+  <div class="section-title">Monthly Trends</div>
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="card-title">Orders &amp; cancellations by month</div>
+      <div class="card-sub">Jan through Apr 2026</div>
+      <div class="legend">
+        <div class="leg"><span class="leg-dot" style="background:#4f8ef7"></span>Total orders</div>
+        <div class="leg"><span class="leg-dot" style="background:#f87171"></span>Cancelled</div>
+      </div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="monthChart" role="img" aria-label="Line chart of monthly orders and cancellations" width="688" height="275" style="display: block; box-sizing: border-box; height: 220px; width: 550px;">Monthly trend.</canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title">Revenue by month</div>
+      <div class="card-sub">Order amount vs actual revenue</div>
+      <div class="legend">
+        <div class="leg"><span class="leg-dot" style="background:#34d399"></span>Actual revenue</div>
+        <div class="leg"><span class="leg-dot" style="background:#f87171"></span>Revenue loss</div>
+      </div>
+      <div style="position:relative;width:100%;height:220px;">
+        <canvas id="monthRevChart" role="img" aria-label="Stacked bar: monthly revenue vs loss" width="688" height="275" style="display: block; box-sizing: border-box; height: 220px; width: 550px;">Monthly revenue trend.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Locality Insights</div>
+  <div class="chart-card full">
+    <div class="card-title">Orders by locality</div>
+    <div class="card-sub">All 15 Hyderabad localities — Jan to Apr 2026</div>
+    <div style="position:relative;width:100%;height:340px;">
+      <canvas id="localityChart" role="img" aria-label="Horizontal bar chart of orders by locality" width="1458" height="425" style="display: block; box-sizing: border-box; height: 340px; width: 1166px;">Orders per locality.</canvas>
+    </div>
+  </div>
+
+  <div class="section-title">Order Details</div>
+  <div class="chart-card full">
+    <div class="card-title">All orders — raw data</div>
+    <div class="card-sub">25 orders from Hyderabad, Jan–Apr 2026</div>
+    <div class="table-wrap" style="margin-top:1rem;">
+      <table>
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>Date</th>
+            <th>Locality</th>
+            <th>Channel</th>
+            <th>Segment</th>
+            <th>Category</th>
+            <th>Payment</th>
+            <th>Amount (₹)</th>
+            <th>Status</th>
+            <th>Cancellation Reason</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-title">Key Insights</div>
+  <div class="insights">
+    <h4>Analysis Summary</h4>
+    <ul>
+      <li>36% cancellation rate (9/25 orders) led to ₹69,121 revenue loss — 31.9% of total potential.</li>
+      <li>Corporate customers have the highest cancellation rate at 75%, followed by New customers at 50%.</li>
+      <li>Electronics (₹30,831) and Appliances (₹23,324) contribute the largest individual revenue losses.</li>
+      <li>UPI is the dominant payment method (56% of orders), yet has a 35.7% cancellation rate.</li>
+      <li>Marketplace channel has the lowest cancellation rate (16.7%) vs Website (50%) and App (43.8%).</li>
+      <li>Top cancellation reasons: address not serviceable, out of stock, and price found lower elsewhere (2 each).</li>
+      <li>March had the highest order volume (9 orders) but also the highest absolute cancellations (3).</li>
+      <li>Narsingi and Ameerpet lead with 3 orders each; both have mixed delivery/cancellation outcomes.</li>
+    </ul>
+  </div>
+
+
+  <div class="section-title">Order Cancellation Predictor</div>
+  <div class="chart-card full" style="margin-bottom:2rem;">
+    <div class="card-title">Predict if an order will be cancelled</div>
+    <div class="card-sub">Fill in the order details below and click Predict</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:1.25rem;" id="predictForm">
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Pincode</label>
+        <input id="f_pincode" type="number" value="500001" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Order Amount (₹)</label>
+        <input id="f_order_amount" type="number" value="5000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Potential Revenue (₹)</label>
+        <input id="f_potential_revenue" type="number" value="5000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Actual Revenue (₹)</label>
+        <input id="f_actual_revenue" type="number" value="0" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Revenue Loss (₹)</label>
+        <input id="f_revenue_loss" type="number" value="5000" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Discount %</label>
+        <input id="f_discount_percent" type="number" value="10" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Promised Delivery Days</label>
+        <input id="f_promised_delivery_days" type="number" value="3" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Actual Delivery Days (-1 if not delivered)</label>
+        <input id="f_actual_delivery_days" type="number" value="-1" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Delivery Delay Days (-1 if not delivered)</label>
+        <input id="f_delivery_delay_days" type="number" value="-1" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Order Month (1–12)</label>
+        <input id="f_order_month" type="number" min="1" max="12" value="3" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Order Day (1–31)</label>
+        <input id="f_order_day" type="number" min="1" max="31" value="15" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Sales Channel</label>
+        <select id="f_sales_channel" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="App">App</option>
+          <option value="Website">Website</option>
+          <option value="Marketplace">Marketplace</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Customer Segment</label>
+        <select id="f_customer_segment" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="New">New</option>
+          <option value="Regular">Regular</option>
+          <option value="Premium">Premium</option>
+          <option value="Corporate">Corporate</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Product Category</label>
+        <select id="f_product_category" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="Fashion">Fashion</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Books">Books</option>
+          <option value="Appliances">Appliances</option>
+          <option value="Home & Kitchen">Home & Kitchen</option>
+          <option value="Groceries">Groceries</option>
+          <option value="Beauty & Personal Care">Beauty & Personal Care</option>
+          <option value="Pharmacy">Pharmacy</option>
+          <option value="Mobile Accessories">Mobile Accessories</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Payment Method</label>
+        <select id="f_payment_method" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="COD">Cash on Delivery</option>
+          <option value="UPI">UPI</option>
+          <option value="Debit Card">Debit Card</option>
+          <option value="Credit Card">Credit Card</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Order Status</label>
+        <select id="f_order_status" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="Cancelled">Cancelled</option>
+          <option value="Delivered">Delivered</option>
+          <option value="In Transit">In Transit</option>
+          <option value="Returned">Returned</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">Locality</label>
+        <select id="f_locality" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button onclick="runPredict()" style="margin-top:1.5rem;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">
+      ⚡ Predict
+    </button>
+
+    <div id="predResult" style="margin-top:1.25rem;display:none;"></div>
+  </div>
+
+  <script>
+  async function runPredict() {
+    const payload = {
+      pincode:               parseInt(document.getElementById('f_pincode').value),
+      order_amount:          parseFloat(document.getElementById('f_order_amount').value),
+      potential_revenue:     parseFloat(document.getElementById('f_potential_revenue').value),
+      actual_revenue:        parseFloat(document.getElementById('f_actual_revenue').value),
+      revenue_loss:          parseFloat(document.getElementById('f_revenue_loss').value),
+      discount_percent:      parseInt(document.getElementById('f_discount_percent').value),
+      promised_delivery_days:parseInt(document.getElementById('f_promised_delivery_days').value),
+      actual_delivery_days:  parseInt(document.getElementById('f_actual_delivery_days').value),
+      delivery_delay_days:   parseInt(document.getElementById('f_delivery_delay_days').value),
+      order_month:           parseInt(document.getElementById('f_order_month').value),
+      order_day:             parseInt(document.getElementById('f_order_day').value),
+      sales_channel:         document.getElementById('f_sales_channel').value,
+      customer_segment:      document.getElementById('f_customer_segment').value,
+      product_category:      document.getElementById('f_product_category').value,
+      payment_method:        document.getElementById('f_payment_method').value,
+      order_status:          document.getElementById('f_order_status').value,
+      locality:              document.getElementById('f_locality').value,
+    };
+
+    const resultDiv = document.getElementById('predResult');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<span style="color:var(--muted);font-size:13px;">Predicting…</span>';
+
+    try {
+      const res = await fetch('/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      const isCancelled = data.prediction === 1;
+      const color = isCancelled ? 'var(--danger)' : 'var(--accent2)';
+      const icon  = isCancelled ? '⚠️' : '✅';
+      resultDiv.innerHTML = `
+        <div style="display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid ${color};border-radius:12px;padding:14px 20px;">
+          <span style="font-size:24px;">${icon}</span>
+          <div>
+            <div style="font-size:16px;font-weight:600;color:${color};">${data.result}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px;">Model output: ${data.prediction}</div>
+          </div>
+        </div>`;
+    } catch(e) {
+      resultDiv.innerHTML = '<span style="color:var(--danger);font-size:13px;">Error: Could not connect to server. Make sure Flask is running.</span>';
+    }
+  }
+  </script>
+
+</main>
+
+<footer>
+  OrderPulse Analytics &nbsp;·&nbsp; Hyderabad, Telangana &nbsp;·&nbsp; Jan – Apr 2026 &nbsp;·&nbsp; 25 orders analysed
+</footer>
+
+<script>
+const BLUE='#4f8ef7',GREEN='#34d399',RED='#f87171',AMBER='#fbbf24',PURPLE='#a78bfa',TEAL='#2dd4bf',CORAL='#fb7185',GRAY='#6b7280';
+const gridC='rgba(255,255,255,0.05)', labelC='#6b7280';
+const base = { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, animation:{duration:800} };
+
+Chart.defaults.color = labelC;
+Chart.defaults.borderColor = gridC;
+
+new Chart(document.getElementById('statusChart'),{
+  type:'doughnut',
+  data:{ labels:['Delivered','Cancelled','In Transit','Returned'], datasets:[{ data:[11,9,4,1], backgroundColor:[GREEN,RED,BLUE,AMBER], borderWidth:3, borderColor:'#141720', hoverBorderColor:'#1c2030' }] },
+  options:{...base, cutout:'68%', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' orders'}}}}
+});
+
+new Chart(document.getElementById('paymentChart'),{
+  type:'doughnut',
+  data:{ labels:['UPI','Cash on Delivery','Debit Card','Credit Card'], datasets:[{ data:[14,8,2,1], backgroundColor:[BLUE,GREEN,AMBER,PURPLE], borderWidth:3, borderColor:'#141720' }] },
+  options:{...base, cutout:'68%', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>' '+c.label+': '+c.raw+' orders'}}}}
+});
+
+const cats=['Appliances','Electronics','Fashion','Home & Kitchen','Beauty & PC','Books','Mobile Acc.','Groceries','Pharmacy'];
+const catAmt=[95351,74170,13265,11920,9249,5456,4803,2243,1819];
+const catLoss=[23324,30831,9630,6564,4910,3121,0,0,0];
+new Chart(document.getElementById('categoryChart'),{
+  type:'bar',
+  data:{ labels:cats, datasets:[
+    {label:'Order amount', data:catAmt, backgroundColor:'rgba(79,142,247,0.25)', borderColor:BLUE, borderWidth:1.5, borderRadius:4},
+    {label:'Revenue loss', data:catLoss, backgroundColor:'rgba(248,113,113,0.25)', borderColor:RED, borderWidth:1.5, borderRadius:4}
+  ]},
+  options:{...base, scales:{
+    x:{ticks:{color:labelC,font:{size:11},maxRotation:30},grid:{color:gridC}},
+    y:{ticks:{color:labelC,font:{size:11},callback:v=>'₹'+Math.round(v/1000)+'k'},grid:{color:gridC}}
+  }, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}`}}}}
+});
+
+new Chart(document.getElementById('segmentChart'),{
+  type:'bar',
+  data:{ labels:['Corporate','New','Premium','Regular'], datasets:[{data:[75,50,40,22.2],backgroundColor:[RED,AMBER,CORAL,PURPLE],borderRadius:4,borderWidth:0}]},
+  options:{...base, scales:{
+    x:{ticks:{color:labelC,font:{size:11}},grid:{color:gridC}},
+    y:{ticks:{color:labelC,callback:v=>v+'%'},grid:{color:gridC},max:100}
+  }, plugins:{tooltip:{callbacks:{label:c=>` ${c.raw.toFixed(1)}% cancellation rate`}}}}
+});
+
+new Chart(document.getElementById('channelChart'),{
+  type:'bar',
+  data:{ labels:['Website','App','Marketplace'], datasets:[{data:[50,43.75,16.67],backgroundColor:[RED,AMBER,GREEN],borderRadius:4,borderWidth:0}]},
+  options:{...base, scales:{
+    x:{ticks:{color:labelC,font:{size:11}},grid:{color:gridC}},
+    y:{ticks:{color:labelC,callback:v=>v+'%'},grid:{color:gridC},max:100}
+  }}
+});
+
+new Chart(document.getElementById('pmtCancelChart'),{
+  type:'bar',
+  data:{ labels:['Debit Card','UPI','Credit Card','Cash on Del.'], datasets:[{data:[50,35.7,0,37.5],backgroundColor:[AMBER,BLUE,PURPLE,CORAL],borderRadius:4,borderWidth:0}]},
+  options:{...base, scales:{
+    x:{ticks:{color:labelC,font:{size:10},maxRotation:30},grid:{color:gridC}},
+    y:{ticks:{color:labelC,callback:v=>v+'%'},grid:{color:gridC},max:100}
+  }}
+});
+
+const reasons=[
+  {label:'Address not serviceable',count:2,color:RED},
+  {label:'Out of stock',count:2,color:AMBER},
+  {label:'Price found lower elsewhere',count:2,color:CORAL},
+  {label:'High delivery ETA',count:1,color:PURPLE},
+  {label:'No response at delivery confirmation',count:1,color:GRAY},
+  {label:'Payment issue',count:1,color:TEAL},
+];
+const rb=document.getElementById('reasonBars');
+reasons.forEach(r=>{
+  rb.innerHTML+=`<div class="reason-row">
+    <div class="reason-label">${r.label}</div>
+    <div class="reason-track"><div class="reason-fill" style="width:${(r.count/2)*100}%;background:${r.color}"></div></div>
+    <div class="reason-count">${r.count}</div>
+  </div>`;
+});
+
+new Chart(document.getElementById('monthChart'),{
+  type:'line',
+  data:{
+    labels:['Jan','Feb','Mar','Apr'],
+    datasets:[
+      {label:'Total orders',data:[5,7,9,4],borderColor:BLUE,backgroundColor:'rgba(79,142,247,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:BLUE},
+      {label:'Cancelled',data:[2,3,3,1],borderColor:RED,backgroundColor:'rgba(248,113,113,0.1)',fill:true,tension:0.3,pointRadius:5,pointBackgroundColor:RED,borderDash:[5,3]}
+    ]
+  },
+  options:{...base, scales:{
+    x:{ticks:{color:labelC},grid:{color:gridC}},
+    y:{ticks:{color:labelC,stepSize:1},grid:{color:gridC},min:0,max:12}
+  }, plugins:{legend:{display:false}, tooltip:{mode:'index',intersect:false}}}
+});
+
+new Chart(document.getElementById('monthRevChart'),{
+  type:'bar',
+  data:{
+    labels:['Jan','Feb','Mar','Apr'],
+    datasets:[
+      {label:'Actual revenue',data:[51087,89478,49827,30830],backgroundColor:'rgba(52,211,153,0.3)',borderColor:GREEN,borderWidth:1.5,borderRadius:4},
+      {label:'Revenue loss',data:[4910,4015,55882,30831],backgroundColor:'rgba(248,113,113,0.3)',borderColor:RED,borderWidth:1.5,borderRadius:4}
+    ]
+  },
+  options:{...base, scales:{
+    x:{ticks:{color:labelC},grid:{color:gridC}},
+    y:{ticks:{color:labelC,callback:v=>'₹'+Math.round(v/1000)+'k'},grid:{color:gridC}}
+  }, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ₹${c.raw.toLocaleString('en-IN')}`}}}}
+});
+
+const localities=['Narsingi','Ameerpet','Financial District','LB Nagar','Kondapur','Manikonda','Secunderabad','HITEC City','Miyapur','Nallagandla','Gachibowli','Madhapur','Jubilee Hills','Kukatpally','Dilsukhnagar'];
+const localityCounts=[3,3,2,2,2,2,2,1,1,1,1,1,1,1,1];
+new Chart(document.getElementById('localityChart'),{
+  type:'bar',
+  data:{ labels:localities, datasets:[{data:localityCounts,backgroundColor:BLUE,borderRadius:4,borderWidth:0}]},
+  options:{...base, indexAxis:'y', scales:{
+    x:{ticks:{color:labelC,stepSize:1},grid:{color:gridC}},
+    y:{ticks:{color:labelC,font:{size:11}},grid:{color:gridC}}
+  }}
+});
+
+const orders=[
+  ['HYDORD0001','2026-02-03','HITEC City','App','New','Fashion','Cash on Delivery',4636.23,'Cancelled','Address not serviceable'],
+  ['HYDORD0002','2026-04-01','Ameerpet','App','Premium','Books','UPI',1466,'Cancelled','Out of stock'],
+  ['HYDORD0003','2026-03-24','Kukatpally','App','Corporate','Fashion','UPI',4993.75,'Cancelled','Address not serviceable'],
+  ['HYDORD0004','2026-03-31','Nallagandla','App','Corporate','Appliances','Cash on Delivery',23324.03,'Cancelled','Out of stock'],
+  ['HYDORD0005','2026-03-28','Gachibowli','Website','Corporate','Home & Kitchen','Cash on Delivery',6564.29,'Cancelled','Price found lower elsewhere'],
+  ['HYDORD0006','2026-02-06','Nallagandla','App','Premium','Appliances','UPI',4605.3,'Delivered','—'],
+  ['HYDORD0007','2026-03-11','Narsingi','Website','Regular','Pharmacy','Cash on Delivery',1819.25,'In Transit','—'],
+  ['HYDORD0008','2026-01-17','Ameerpet','Marketplace','Regular','Books','UPI',582.88,'Delivered','—'],
+  ['HYDORD0009','2026-03-12','Financial District','App','New','Electronics','Cash on Delivery',21684.21,'In Transit','—'],
+  ['HYDORD0010','2026-03-03','LB Nagar','App','New','Appliances','UPI',19860.28,'In Transit','—'],
+  ['HYDORD0011','2026-04-12','Financial District','App','Regular','Appliances','UPI',22066.92,'Delivered','—'],
+  ['HYDORD0012','2026-03-03','Manikonda','Marketplace','Regular','Appliances','UPI',25534.75,'Returned','—'],
+  ['HYDORD0013','2026-01-06','Secunderabad','Website','Premium','Beauty & Personal Care','UPI',4909.85,'Cancelled','High delivery ETA'],
+  ['HYDORD0014','2026-01-13','Narsingi','App','New','Books','UPI',1751.93,'Delivered','—'],
+  ['HYDORD0015','2026-02-03','Secunderabad','Marketplace','Regular','Beauty & Personal Care','Cash on Delivery',4338.91,'Delivered','—'],
+  ['HYDORD0016','2026-04-08','LB Nagar','App','Premium','Groceries','Cash on Delivery',881.65,'Delivered','—'],
+  ['HYDORD0017','2026-01-13','Kondapur','App','Regular','Home & Kitchen','Debit Card',4015.06,'Cancelled','No response at delivery confirmation'],
+  ['HYDORD0018','2026-02-22','Miyapur','App','New','Electronics','Cash on Delivery',21655.52,'Delivered','—'],
+  ['HYDORD0019','2026-02-02','Narsingi','App','New','Groceries','Debit Card',1361.21,'Delivered','—'],
+  ['HYDORD0020','2026-03-17','Ameerpet','App','Regular','Beauty & Personal Care','Credit Card',4997.06,'In Transit','—'],
+  ['HYDORD0021','2026-03-15','Manikonda','Marketplace','Regular','Home & Kitchen','UPI',791.51,'Delivered','—'],
+  ['HYDORD0022','2026-02-06','Jubilee Hills','App','Regular','Mobile Accessories','UPI',3461.2,'Delivered','—'],
+  ['HYDORD0023','2026-03-24','Madhapur','App','Regular','Books','UPI',1655.4,'Cancelled','Payment issue'],
+  ['HYDORD0024','2026-04-11','Dilsukhnagar','Marketplace','Premium','Mobile Accessories','Cash on Delivery',1342.12,'Delivered','—'],
+  ['HYDORD0025','2026-02-13','Kondapur','Marketplace','Regular','Electronics','UPI',30830.78,'Cancelled','Price found lower elsewhere'],
+];
+
+const statusClass={Delivered:'delivered',Cancelled:'cancelled','In Transit':'transit',Returned:'returned'};
+const tbody=document.getElementById('orderTable');
+orders.forEach(o=>{
+  const cls=statusClass[o[8]]||'';
+  tbody.innerHTML+=`<tr>
+    <td style="font-family:monospace;font-size:11px;color:var(--muted)">${o[0]}</td>
+    <td>${o[1]}</td>
+    <td>${o[2]}</td>
+    <td>${o[3]}</td>
+    <td>${o[4]}</td>
+    <td>${o[5]}</td>
+    <td>${o[6]}</td>
+    <td style="text-align:right">₹${o[7].toLocaleString('en-IN')}</td>
+    <td><span class="pill ${cls}">${o[8]}</span></td>
+    <td style="color:var(--muted);font-size:11px">${o[9]}</td>
+  </tr>`;
+});
+</script>
+
+
+</body></html>
